@@ -1,0 +1,47 @@
+{
+  "meta": {
+    "criado_em": "2026-09-14",
+    "moeda_base": "BRL",
+    "regra_alerta": "preco < mediana_historica * 0.85 (ou < typical_GF * 0.85 enquanto hist < 14 obs)",
+    "cooldown_dias": 3,
+    "pax": "2 adultos + 1 crianca (assumida 2-11 anos; total estimado = 2.75x tarifa adulto)"
+  },
+  "watches": [
+    {
+      "slug": "gig-tyo-2027j",
+      "tipo": "voo",
+      "origem": "GIG",
+      "destino": "TYO",
+      "data_ida": "2027-07-14",
+      "data_volta": "2027-07-28",
+      "fonte": "google-flights"
+    },
+    {
+      "slug": "gig-tyo-2027a",
+      "tipo": "voo",
+      "origem": "GIG",
+      "destino": "TYO",
+      "data_ida": "2027-08-04",
+      "data_volta": "2027-08-18",
+      "fonte": "google-flights"
+    },
+    {
+      "slug": "gig-tyo-2027s",
+      "tipo": "voo",
+      "origem": "GIG",
+      "destino": "TYO",
+      "data_ida": "2027-09-08",
+      "data_volta": "2027-09-22",
+      "fonte": "google-flights"
+    },
+    {
+      "slug": "gh-tyo-2027a",
+      "tipo": "hotel",
+      "destino": "Tokyo",
+      "data_checkin": "2027-08-01",
+      "data_checkout": "2027-08-08",
+      "fonte": "google-hotels",
+      "nota": "semana de referencia dentro da janela; ajustar quando datas fecharem"
+    }
+  ]
+}
