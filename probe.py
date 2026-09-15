@@ -307,9 +307,61 @@ def format_health(cfg, health):
         last_ok = h.get("last_ok") or "nunca"
         fails = h.get("consecutive_fails", 0)
         n = len(load_obs(slug))
-        estado = "dormant" if h.get("dormant") else ("FAIL x%d" % fails if fails else "ok")
+        if h.get("dormant"):
+            estado = "dormant"
+        elif n == 0:
+            estado = "semeando (1a coleta pendente)"
+        elif fails:
+            estado = "FAIL x%d" % fails
+        else:
+            estado = "ok"
         lines.append("• `%s`: %s, último ok %s, %d obs" % (slug, estado, last_ok, n))
+    spark = sparkline_file()
+    if spark:
+        lines.append("")
+        lines.append("[[spark]]")
     return "\n".join(lines)
+
+
+def sparkline_file():
+    """Gera PNG com a serie dos watches ativos. Retorna path ou None."""
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from matplotlib.ticker import FuncFormatter
+        import datetime as _dt
+        actives = []
+        for fname in sorted(os.listdir(HIST)):
+            if not fname.endswith(".jsonl"):
+                continue
+            slug = fname[:-6]
+            pts = [(h["date"], h["min_brl"]) for h in load_obs(slug)
+                   if h.get("ok") and h.get("min_brl")]
+            if len(pts) >= 2:
+                actives.append((slug, pts))
+        if not actives:
+            return None
+        fig, axes = plt.subplots(len(actives), 1,
+                                 figsize=(8, 2.6 * len(actives)))
+        if len(actives) == 1:
+            axes = [axes]
+        for ax, (slug, pts) in zip(axes, actives):
+            xs = [_dt.date.fromisoformat(d) for d, _ in pts]
+            ys = [v for _, v in pts]
+            ax.plot(xs, ys, marker="o", linewidth=1.4)
+            ax.set_title(slug, fontsize=9)
+            ax.grid(alpha=0.3)
+            ax.tick_params(labelsize=7)
+            ax.yaxis.set_major_formatter(FuncFormatter(
+                lambda v, _: "R$ " + format(int(v), ",d").replace(",", ".")))
+        fig.tight_layout()
+        path = os.path.join(BASE, "spark.png")
+        fig.savefig(path, dpi=110)
+        plt.close(fig)
+        return path
+    except Exception:
+        return None
 
 
 def load_json(path, default):
@@ -348,6 +400,8 @@ def health_tick(slug, ok, dormant=False):
 def main():
     once = "--once" in sys.argv
     force = os.environ.get("TT_FORCE") == "1"
+    only = (sys.argv[sys.argv.index("--only") + 1]
+            if "--only" in sys.argv else None)
     if "--health" in sys.argv:
         with open(os.path.join(BASE, "watches.json")) as f:
             cfg = json.load(f)
@@ -361,6 +415,8 @@ def main():
     today = datetime.date.today()
     for w in cfg["watches"]:
         slug = w["slug"]
+        if only and slug != only:
+            continue
         hist = load_obs(slug)
         good = [h for h in hist if h.get("ok")]
         # B1: dedupe ANTES de qualquer fetch

@@ -35,6 +35,16 @@
       "fonte": "google-flights"
     },
     {
+      "slug": "gru-tyo-2027j",
+      "tipo": "voo",
+      "origem": "GRU",
+      "destino": "TYO",
+      "data_ida": "2027-07-14",
+      "data_volta": "2027-07-28",
+      "fonte": "google-flights",
+      "nota": "cross-check: SP costuma ficar 20-30% mais barato p/ internacional"
+    },
+    {
       "slug": "gh-tyo-2027a",
       "tipo": "hotel",
       "destino": "Tokyo",
