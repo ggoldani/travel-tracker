@@ -2,8 +2,8 @@
   "meta": {
     "criado_em": "2026-09-14",
     "moeda_base": "BRL",
-    "regra_alerta": "preco < mediana_historica * 0.85 (ou < typical_GF * 0.85 enquanto hist < 14 obs)",
-    "cooldown_dias": 3,
+    "regra_alerta": "val < mediana30 * 0.85 (>=14 obs) OU val <= watch.target; cooldown 3d",
+    "janela_gf_dias": 315,
     "pax": "2 adultos + 1 crianca (assumida 2-11 anos; total estimado = 2.75x tarifa adulto)"
   },
   "watches": [

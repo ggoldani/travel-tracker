@@ -2,3 +2,4 @@
 {"ts": "2026-09-15T01:28", "date": "2026-09-15", "ok": true, "n": 11, "moedas": ["EUR"], "min_brl": 451.16, "min_raw": ["EUR", 30.0], "baseline": 926.07}
 {"ts": "2026-09-15T02:41", "date": "2026-09-15", "ok": true, "n": 12, "moedas": ["EUR"], "min_brl": 587.7, "min_raw": ["EUR", 49.0], "baseline": 451.16}
 {"ts": "2026-09-15T02:43", "date": "2026-09-15", "ok": true, "n": 12, "moedas": ["EUR"], "min_brl": 587.7, "min_raw": ["EUR", 49.0], "baseline": 587.7, "dates_flow_ok": true}
+{"ts": "2026-09-15T04:04", "date": "2026-09-15", "ok": true, "n": 12, "moedas": ["EUR"], "min_brl": 468.97, "min_raw": ["EUR", 49.0], "baseline": 587.7, "dates_flow_ok": true}

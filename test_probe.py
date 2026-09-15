@@ -93,5 +93,52 @@ class TestGhDateLabel(unittest.TestCase):
         self.assertEqual(probe._gh_date_label(d2), "domingo, 8 de agosto de 2027")
 
 
+class TestCollectGhContract(unittest.TestCase):
+    def test_gh_script_printa_contrato_completo(self):
+        # contrato: PICKER separado + STEPS com d1,d2,dn (3 valores)
+        import re
+        w = {"destino": "Tokyo", "data_checkin": "2027-08-01",
+             "data_checkout": "2027-08-08"}
+        captured = {}
+        orig = probe.run_browser
+        probe.run_browser = lambda s, timeout=220: captured.update(script=s) or {}
+        try:
+            probe.collect_gh(w)
+        finally:
+            probe.run_browser = orig
+        s = captured["script"]
+        assert "print('PICKER =', p)" in s
+        m = re.search(r"print\('STEPS =', (.*?)\)", s)
+        assert m and [v.strip() for v in m.group(1).split(",")] == ["d1", "d2", "dn"]
+        # sem lixo de rascunho
+        assert "if False" not in s
+
+
+class TestProcessWatch(unittest.TestCase):
+    def test_dedupe_antes_de_fetch(self):
+        import tempfile, shutil, datetime
+        import os
+        tmp = tempfile.mkdtemp()
+        old = (probe.BASE, probe.HIST)
+        try:
+            probe.BASE, probe.HIST = tmp, os.path.join(tmp, "history")
+            os.makedirs(probe.HIST)
+            today = datetime.date.today().isoformat()
+            with open(os.path.join(probe.HIST, "x.jsonl"), "w") as f:
+                f.write('{"date": "%s", "ok": true, "min_brl": 100.0}\n' % today)
+            fetched = []
+            probe.collect_gf = lambda w: fetched.append(1) or {"PRICES": "[]"}
+            probe.run_browser = lambda s, timeout=220: {}
+            msg, payload = probe.process_watch(
+                {"slug": "x", "tipo": "voo", "origem": "A", "destino": "B",
+                 "data_ida": "2090-01-01", "data_volta": "2090-01-10"},
+                datetime.date.today(), force=False)
+            assert msg.startswith("SKIP"), msg
+            assert not fetched, "fetch aconteceu apos dedupe!"
+        finally:
+            probe.BASE, probe.HIST = old
+            shutil.rmtree(tmp)
+
+
 if __name__ == "__main__":
     unittest.main()
