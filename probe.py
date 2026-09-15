@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Travel tracker - coleta diaria de precos (Google Flights + Google Hotels).
 
-Uso: probe.py          -> tick: coleta, append no history, imprime so se deal
-     probe.py --once   -> foreground pra testes (imprime sempre)
+Uso: probe.py            -> tick: coleta, append no history, imprime so se deal
+     probe.py --once     -> foreground pra testes (imprime sempre)
+     probe.py --health   -> relatorio de saude (pra heartbeat semanal)
+     TT_FORCE=1          -> ignora dedupe diario (ops/testes)
 """
 import json
 import os
@@ -18,6 +20,11 @@ CLI = os.path.expanduser("~/.hermes/hermes-agent/venv/bin/browser-use")
 CDP_URL = "http://127.0.0.1:9333"
 HIST = os.path.join(BASE, "history")
 os.makedirs(HIST, exist_ok=True)
+
+PT_WEEKDAYS = ["segunda-feira", "terça-feira", "quarta-feira", "quinta-feira",
+               "sexta-feira", "sábado", "domingo"]
+PT_MONTHS = ["janeiro", "fevereiro", "março", "abril", "maio", "junho",
+             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
 
 
 def ensure_chrome():
@@ -44,9 +51,6 @@ def ensure_chrome():
             continue
     raise RuntimeError("chrome dedicado nao subiu na port 9333")
 
-JUNK = {100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500, 2000, 2500, 3000,
-        4000, 5000, 6000, 8000, 10000, 15000, 20000}
-
 
 def now_br():
     return datetime.datetime.now().astimezone().strftime("%Y-%m-%dT%H:%M")
@@ -58,32 +62,20 @@ def run_browser(script, timeout=220):
                        env=dict(os.environ, BU_CDP_URL=CDP_URL))
     d = {}
     for line in (p.stdout or "").splitlines():
-        m = re.match(r"^(PRICES|PRICES_GH)\s*=\s*(.+)$", line.strip())
+        m = re.match(r"^(PRICES|PRICES_GH|STEPS|PICKER)\s*=\s*(.+)$", line.strip())
         if m:
             d[m.group(1)] = m.group(2)
     return d
 
 
-def parse_brl(strings):
-    vals = []
-    for s in strings:
-        c = s.replace("\\xa0", " ").replace("\xa0", " ")
-        m = re.search(r"R\$\s*([\d.]+)(?:,(\d{2}))?", c)
-        if not m:
-            continue
-        v = float(m.group(1).replace(".", ""))
-        if m.group(2):
-            v += int(m.group(2)) / 100.0
-        if v > 50 and int(v) not in JUNK:
-            vals.append(v)
-    if vals:
-        med = statistics.median(vals)
-        vals = [v for v in vals if v > 0.35 * med]  # lixo de UI tipo R$545
-    return vals
-
-
 def parse_multi(strings):
-    """Captura R$/US$/EUR e devolve valores brutos + moedas vistas."""
+    """Captura R$/US$/EUR e devolve [(moeda, valor)].
+
+    Heuristica de separador (paginas pt-BR com leak en-US):
+    - dot presente -> dot = milhar, resto decimal se tiver virgula de 2 digitos
+    - virgula com exatamente 2 digitos no fim -> decimal
+    - virgula com 3 digitos e sem dot -> leak en-US = milhar
+    """
     out = []
     for s in strings:
         c = s.replace("\\xa0", " ").replace("\xa0", " ")
@@ -92,20 +84,35 @@ def parse_multi(strings):
             continue
         cur = {"R$": "BRL", "US$": "USD", "\u20ac": "EUR"}[m.group(1)]
         num = m.group(2)
-        if cur in ("USD", "EUR"):
-            v = float(num.replace(",", ""))
-        else:
+        if "." in num and "," in num:
+            v = float(num.replace(".", "").replace(",", "."))
+        elif "," in num:
             parts = num.split(",")
             if len(parts) == 2 and len(parts[1]) == 2:
-                v = float(num.replace(".", "").replace(",", "."))
+                v = float(num.replace(",", "."))
             else:
-                v = float(num.replace(".", ""))
+                v = float(num.replace(",", ""))
+        else:
+            # dot-only: pagina forçada pt-BR -> dot = milhar ("8.561" = 8561);
+            # decimal em pt-BR usa virgula, entao dot solto nunca e decimal
+            v = float(num.replace(".", ""))
         if v > 20:
             out.append((cur, v))
-    if out:
-        med = statistics.median([v for _, v in out])
-        out = [(c, v) for c, v in out if v > 0.35 * med]
     return out
+
+
+def filter_junk(pairs, ratio=0.20):
+    """Mata lixo de UI so pra metrica min (voo). Hotel usa mediana = robusta,
+    nao filtra (spread legitimo de listings chega a 10x)."""
+    if not pairs:
+        return pairs
+    med = statistics.median([v for _, v in pairs])
+    return [(c, v) for c, v in pairs if v > ratio * med]
+
+
+def _gh_date_label(d):
+    return "%s, %d de %s de %d" % (
+        PT_WEEKDAYS[d.weekday()], d.day, PT_MONTHS[d.month - 1], d.year)
 
 
 _FX_CACHE = None
@@ -125,7 +132,6 @@ def fx_to_brl(vals):
                 _FX_CACHE = json.load(f)
     if not _FX_CACHE or _FX_CACHE.get("date") != today:
         rates = {}
-        # primario: open.er-api.com (free, sem key); fallback: awesomeapi
         try:
             with urllib.request.urlopen("https://open.er-api.com/v6/latest/USD",
                                         timeout=10) as r:
@@ -146,7 +152,8 @@ def fx_to_brl(vals):
                             "https://economia.awesomeapi.com.br/last/" + pair,
                             timeout=10) as r:
                         d = json.loads(r.read().decode())
-                    rates[pair.replace("-", "")] = float(d[pair.replace("-", "")]["bid"])
+                    rates[pair.replace("-", "")] = float(
+                        d[pair.replace("-", "")]["bid"])
                 except Exception:
                     pass
         if rates:
@@ -170,6 +177,12 @@ def fx_to_brl(vals):
     return best
 
 
+CONSENT_JS = ("(() => { const c = Array.from(document.querySelectorAll("
+              "'button, a[href], div[role=button]')); const b = c.find("
+              "x => /^(Accept all|Aceitar tudo|Aceitar todos)$/i.test("
+              "(x.innerText||'').trim())); if (b) b.click(); })()")
+
+
 def collect_gf(w):
     q = "Flights from %s to %s on %s through %s" % (
         w["origem"], w["destino"], w["data_ida"], w["data_volta"])
@@ -182,18 +195,22 @@ def collect_gf(w):
         + "time.sleep(16)\n"
         + "t = js(\"document.title\")\n"
         + "if 'Before' in t or 'Antes' in t:\n"
-        + "    js(\"(() => { const c = Array.from(document.querySelectorAll('button, a[href], div[role=button]')); const b = c.find(x => /^(Accept all|Aceitar tudo|Aceitar todos)$/i.test((x.innerText||'').trim())); if (b) b.click(); })()\")\n"
+        + "    js(%r)\n" % CONSENT_JS
         + "    time.sleep(16)\n"
-        + "prices = js(\"(() => (document.body.innerText.match(/R\\\\$\\\\s?[\\\\d.,]+/g) || []).slice(0, 12))()\")\n"
+        + "prices = js(\"(() => (document.body.innerText.match(/(?:R\\\\$|US\\\\$|\u20ac)\\\\s?[\\\\d.,]+/g) || []).slice(0, 12))()\")\n"
         + "print('PRICES =', prices)\n"
     )
     return run_browser(script)
 
 
 def collect_gh(w):
-    q = w["destino"] + " hoteis"
+    """GH com datas reais: abre, clica Alterar datas, marca checkin/checkout
+    por aria-label pt-BR, aplica (Concluido) e extrai precos da semana."""
     url = ("https://www.google.com/travel/search?q="
-           + urllib.parse.quote(q) + "&hl=pt-BR&gl=BR&curr=BRL")
+           + urllib.parse.quote(w["destino"] + " hoteis")
+           + "&hl=pt-BR&gl=BR&curr=BRL")
+    ci = _gh_date_label(datetime.date.fromisoformat(w["data_checkin"]))
+    co = _gh_date_label(datetime.date.fromisoformat(w["data_checkout"]))
     script = (
         "import time\n"
         "new_tab(%r)\n" % url
@@ -201,9 +218,38 @@ def collect_gh(w):
         + "time.sleep(16)\n"
         + "t = js(\"document.title\")\n"
         + "if 'Before' in t or 'Antes' in t:\n"
-        + "    js(\"(() => { const c = Array.from(document.querySelectorAll('button, a[href], div[role=button]')); const b = c.find(x => /^(Accept all|Aceitar tudo|Aceitar todos)$/i.test((x.innerText||'').trim())); if (b) b.click(); })()\")\n"
+        + "    js(%r)\n" % CONSENT_JS
         + "    time.sleep(16)\n"
-        + "prices = js(\"(() => (document.body.innerText.match(/(?:R\\$|US\\$|€)\\s?[\\d.,]+/g) || []).slice(0, 12))()\")\n"
+        # abrir picker
+        + "p = js(%r)\n" % (
+            "(() => { const b = Array.from(document.querySelectorAll("
+            "'[aria-label]')).find(e => /^Alterar datas/i.test("
+            "e.getAttribute('aria-label'))); if (!b) return 'NO-BTN'; "
+            "b.click(); return 'OK'; })()")
+        + "print('PICKER =', p)\n"
+        + "time.sleep(3)\n"
+        # marcar checkin e checkout
+        + "d1 = js(%r)\n" % (
+            "((lbl) => { const c = Array.from(document.querySelectorAll("
+            "'[aria-label]')).find(e => e.getAttribute('aria-label') === lbl);"
+            " if (!c) return 'NO-CELL'; (c.closest('button')||c).click(); "
+            "return 'OK'; })(%r)" % ci)
+        + "time.sleep(2)\n"
+        + "d2 = js(%r)\n" % (
+            "((lbl) => { const c = Array.from(document.querySelectorAll("
+            "'[aria-label]')).find(e => e.getAttribute('aria-label') === lbl);"
+            " if (!c) return 'NO-CELL'; (c.closest('button')||c).click(); "
+            "return 'OK'; })(%r)" % co)
+        + "time.sleep(2)\n"
+        # aplicar
+        + "dn = js(%r)\n" % (
+            "(() => { const b = Array.from(document.querySelectorAll("
+            "'button')).find(x => /Conclu[ií]do|^Done$|Aplicar/i.test("
+            "(x.innerText||'').trim())); if (b) { b.click(); return 'OK'; } "
+            "return 'NO-BTN'; })()")
+        + "time.sleep(14)\n"
+        + "prices = js(\"(() => (document.body.innerText.match(/(?:R\\\\$|US\\\\$|\u20ac)\\\\s?[\\\\d.,]+/g) || []).slice(0, 12))()\")\n"
+        + "print('STEPS =', p, d1, d2, dn)\n"
         + "print('PRICES =', prices)\n"
     )
     return run_browser(script)
@@ -219,6 +265,10 @@ def load_obs(slug):
                 if line:
                     out.append(json.loads(line))
     return out
+
+
+def _brl(v):
+    return "R$ " + format(round(v), ",.0f").replace(",", ".")
 
 
 def format_alert(w, val, base, metric):
@@ -249,19 +299,74 @@ def format_alert(w, val, base, metric):
     return "\n".join(lines)
 
 
-def _brl(v):
-    return "R$ " + format(round(v), ",.0f").replace(",", ".")
+def format_health(cfg, health):
+    lines = ["🩺 *TRAVEL TRACKER — saúde semanal*"]
+    for w in cfg["watches"]:
+        slug = w["slug"]
+        h = health.get(slug, {})
+        last_ok = h.get("last_ok") or "nunca"
+        fails = h.get("consecutive_fails", 0)
+        n = len(load_obs(slug))
+        estado = "dormant" if h.get("dormant") else ("FAIL x%d" % fails if fails else "ok")
+        lines.append("• `%s`: %s, último ok %s, %d obs" % (slug, estado, last_ok, n))
+    return "\n".join(lines)
+
+
+def load_json(path, default):
+    if os.path.exists(path):
+        with open(path) as f:
+            return json.load(f)
+    return default
+
+
+def save_json(path, data):
+    with open(path, "w") as f:
+        json.dump(data, f)
+
+
+def health_path():
+    return os.path.join(BASE, "health.json")
+
+
+def health_tick(slug, ok, dormant=False):
+    hp = health_path()
+    health = load_json(hp, {})
+    h = health.setdefault(slug, {})
+    if dormant:
+        h["dormant"] = True
+    elif ok:
+        h["dormant"] = False
+        h["consecutive_fails"] = 0
+        h["last_ok"] = datetime.date.today().isoformat()
+    else:
+        h["dormant"] = False
+        h["consecutive_fails"] = h.get("consecutive_fails", 0) + 1
+    save_json(hp, health)
+    return h
 
 
 def main():
-    once = ("--once" in sys.argv) or ("--flush" in sys.argv)
+    once = "--once" in sys.argv
+    force = os.environ.get("TT_FORCE") == "1"
+    if "--health" in sys.argv:
+        with open(os.path.join(BASE, "watches.json")) as f:
+            cfg = json.load(f)
+        print(format_health(cfg, load_json(health_path(), {})))
+        return
     ensure_chrome()
     with open(os.path.join(BASE, "watches.json")) as f:
         cfg = json.load(f)
     msgs = []
+    payload = {}
     today = datetime.date.today()
     for w in cfg["watches"]:
         slug = w["slug"]
+        hist = load_obs(slug)
+        good = [h for h in hist if h.get("ok")]
+        # B1: dedupe ANTES de qualquer fetch
+        if not force and any(h.get("date") == today.isoformat() for h in hist):
+            msgs.append("SKIP: %s ja coletado hoje" % slug)
+            continue
         # gate GF: google recusou data a 324 dias na pratica; gate = 315
         if w["tipo"] == "voo":
             di = datetime.date.fromisoformat(w["data_ida"])
@@ -270,6 +375,7 @@ def main():
                 wake = di - datetime.timedelta(days=315)
                 msgs.append("DORMANT: %s ida em %d dias; acorda %s"
                             % (slug, dias, wake.isoformat()))
+                health_tick(slug, False, dormant=True)
                 continue
         if w["tipo"] == "voo":
             res = collect_gf(w)
@@ -282,33 +388,17 @@ def main():
         except Exception:
             strings = []
         pairs = parse_multi(strings)
-        # cleanup: fechar todas as tabs pra nao acumular memoria
+        # cleanup: fechar tabs
         run_browser("for t in list_tabs():\n    try:\n        close_tab(t)\n    except Exception:\n        pass\nprint('CLEAN = ok')\n", timeout=60)
-        hist = load_obs(slug)
-        good = [h for h in hist if h.get("ok")]
-        prev = good[-1] if good else None
-        # dedupe: 1 observacao por dia (tick idempotente)
-        if any(h.get("date") == today.isoformat() for h in hist):
-            msgs.append("SKIP: %s ja coletado hoje" % slug)
-            continue
         if w["tipo"] == "hotel":
-            # hotel: mediana dos listings = preco tipico do destino
             brls = sorted(fx_to_brl([p]) for p in pairs)
             val = brls[len(brls) // 2] if brls else None
             metric = "mediana-listings"
         else:
-            val = fx_to_brl(pairs) if pairs else None
+            val = fx_to_brl(filter_junk(pairs)) if pairs else None
             metric = "min-tarifa"
-        obs = {
-            "ts": now_br(),
-            "date": today.isoformat(),
-            "ok": val is not None,
-            "n": len(pairs),
-            "moedas": sorted({c for c, _ in pairs}),
-            "min_brl": round(val, 2) if val else None,
-            "min_raw": min(pairs, key=lambda p: p[1]) if pairs else None,
-        }
         # baseline: mediana de ate 30 obs proprias; enquanto <14, ultimo min
+        prev = good[-1] if good else None
         if len(good) >= 14:
             base = statistics.median([h["min_brl"] for h in good[-30:]])
             base_note = "mediana30"
@@ -318,39 +408,56 @@ def main():
         else:
             base = None
             base_note = "primeira-obs"
-        obs["baseline"] = round(base, 2) if base else None
+        obs = {
+            "ts": now_br(),
+            "date": today.isoformat(),
+            "ok": val is not None,
+            "n": len(pairs),
+            "moedas": sorted({c for c, _ in pairs}),
+            "min_brl": round(val, 2) if val else None,
+            "min_raw": min(pairs, key=lambda p: p[1]) if pairs else None,
+            "baseline": round(base, 2) if base else None,
+        }
+        if w["tipo"] == "hotel":
+            # rastro do fluxo de datas: se picker/celulas/aplicar falharam, o
+            # preco veio da pagina generica e NAO e comparavel com a serie
+            steps = res.get("STEPS", "").split()
+            obs["dates_flow_ok"] = (res.get("PICKER", "") == "OK"
+                                    and steps == ["OK", "OK", "OK", "OK"])
         with open(os.path.join(HIST, slug + ".jsonl"), "a") as f:
             f.write(json.dumps(obs) + "\n")
+        h = health_tick(slug, val is not None)
         if val is None:
             msgs.append("FAIL: %s sem precos (mantido estado anterior)" % slug)
+            # B4: morte silenciosa -> avisa no canal a partir de 3 fails seguidos
+            if h.get("consecutive_fails", 0) == 3:
+                payload[slug] = ("⚠️ *TRAVEL TRACKER quebrado p/ %s*\n"
+                                 "3 coletas seguidas falharam (DOM da fonte "
+                                 "mudou?). Último preço bom: %s" % (
+                                     slug, _brl(base) if base else "n/a"))
             continue
+        # preco-alvo absoluto (opcional no watch)
+        target = w.get("target")
         alert = bool(base and base_note == "mediana30" and val < base * 0.85)
+        if target and val <= target:
+            alert = True
         # cooldown: max 1 alerta por watch a cada 3 dias
         cpath = os.path.join(BASE, "alerts.json")
-        cooldown = {}
-        if os.path.exists(cpath):
-            with open(cpath) as f:
-                cooldown = json.load(f)
+        cooldown = load_json(cpath, {})
         last = cooldown.get(slug)
         if last and (today - datetime.date.fromisoformat(last)).days < 3:
             alert = False
-        tag = "ALERTA" if alert else "ok"
         if alert:
             cooldown[slug] = today.isoformat()
-            with open(cpath, "w") as f:
-                json.dump(cooldown, f)
-        alert_payload = getattr(main, "_payload", {})
-        if alert:
-            alert_payload[slug] = format_alert(w, val, base, metric)
-            main._payload = alert_payload
-        msgs.append("%s: %s %s R$ %.0f (%s; baseline %s = %.0f, n=%d, %s)" % (
-            tag, slug, metric, val, "BRL-conv", base_note,
-            base if base else 0, len(pairs), ",".join(obs["moedas"])))
+            save_json(cpath, cooldown)
+            payload[slug] = format_alert(w, val, base, metric)
+        tag = "ALERTA" if alert else "ok"
+        msgs.append("%s: %s %s R$ %.0f (baseline %s = %.0f, n=%d, %s)" % (
+            tag, slug, metric, val, base_note, base if base else 0,
+            len(pairs), ",".join(obs["moedas"])))
     if once:
         print("\n".join(msgs) if msgs else "(nada)")
     else:
-        # modo cron: imprime somente alertas formatados (vazio = silencio)
-        payload = getattr(main, "_payload", {})
         print(("\n\n" + "―" * 20 + "\n\n").join(payload.values()) if payload else "")
 
 
