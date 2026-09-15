@@ -1,0 +1,23 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>status</title><script src="https://cdn.tailwindcss.com"></script>
+<style>body{background:#09090b}.glass{background:rgba(24,24,27,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06)}code,pre{font-family:ui-monospace,monospace}</style></head><body class='min-h-screen text-zinc-100'><main class='max-w-3xl mx-auto px-6 py-10'><div class='glass rounded-2xl p-8'><h1 class='text-2xl font-bold text-zinc-100 mt-2 mb-4'>travel-tracker.workflow.status</h1>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Goal</h2>
+<p class='text-sm text-zinc-300 mb-2'>Responder &quot;quanto está&quot; e &quot;como está a tendência&quot; com evidência do histórico.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Scope</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Aplica-se: consulta de preço atual, comparação GIG×GRU, evolução da série.</li><li class='text-zinc-300 mb-1'>Não cobre: operação do coletor (usar <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>tick</code>/<code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>health</code>).</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Triggers</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>&quot;quanto tá?&quot;, &quot;preço atual&quot;, &quot;histórico&quot;, &quot;tá barato?&quot;</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Inputs</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>opcional: slug do watch (default: todos os ativos)</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Invariants</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Preço citado SEMPRE do último obs ok (nunca de memória)</li><li class='text-zinc-300 mb-1'>Juntar 2 obs do mesmo dia = mesma coleta (dedupe)</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Procedure</h2>
+<p class='text-sm text-zinc-300 mb-2'>1. Ler o último obs ok de cada watch: <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>tail -1 history/&lt;slug&gt;.jsonl</code>.</p>
+<p class='text-sm text-zinc-300 mb-2'>2. Contexto: baseline da obs (mediana30 ou seeding) e n.</p>
+<p class='text-sm text-zinc-300 mb-2'>3. Tendência: <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>python3 probe.py --health</code> + spark.png.</p>
+<p class='text-sm text-zinc-300 mb-2'>4. Para converter em decisão: comparar com <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>target</code> do watch, se houver.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Outputs</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Tabela curta: watch · preço · Δ vs baseline · estado</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Review gate</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>[ ] Nenhum preço citado sem obs correspondente</li><li class='text-zinc-300 mb-1'>[ ] Delta vs baseline explícito</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>References</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'><a class='text-sky-400 hover:underline' href='../SKILL.md'>../SKILL.md</a></li></ul></div><p class='text-xs text-zinc-500 mt-4'>gerado por gen_manuals.py — não editar à mão</p></main></body></html>

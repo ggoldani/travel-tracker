@@ -1,0 +1,23 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>add-watch</title><script src="https://cdn.tailwindcss.com"></script>
+<style>body{background:#09090b}.glass{background:rgba(24,24,27,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06)}code,pre{font-family:ui-monospace,monospace}</style></head><body class='min-h-screen text-zinc-100'><main class='max-w-3xl mx-auto px-6 py-10'><div class='glass rounded-2xl p-8'><h1 class='text-2xl font-bold text-zinc-100 mt-2 mb-4'>travel-tracker.workflow.add-watch</h1>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Goal</h2>
+<p class='text-sm text-zinc-300 mb-2'>Adicionar um novo monitor (voo ou hotel) ao tracker com semeadura imediata de histórico.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Scope</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Aplica-se: novos destinos, novas janelas de datas, cross-check de origem.</li><li class='text-zinc-300 mb-1'>Não cobre: mudança de comportamento do coletor (usar ciclo radioactive).</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Triggers</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>&quot;monitora &lt;destino&gt;&quot;, &quot;adiciona &lt;rota&gt;&quot;, &quot;quero saber o preço de X&quot;</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Inputs</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>tipo (<code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>voo</code>|<code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>hotel</code>), origem/destino (IATA) ou cidade, datas ISO, <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>target</code> opcional (BRL)</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Invariants</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Slug único; datas ISO 8601; gate GF 315 dias → watch dormant acorda sozinho</li><li class='text-zinc-300 mb-1'>Nunca editar history à mão; semear é obrigatório (1ª obs no dia da criação)</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Procedure</h2>
+<p class='text-sm text-zinc-300 mb-2'>1. Editar <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>watches.json</code> adicionando o watch (campos conforme tipo).</p>
+<p class='text-sm text-zinc-300 mb-2'>2. Rodar <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>python3 probe.py --once --only &lt;slug&gt;</code> (sem TT_FORCE; watch novo não tem obs hoje).</p>
+<p class='text-sm text-zinc-300 mb-2'>3. Confirmar obs criada em <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>history/&lt;slug&gt;.jsonl</code> com <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>ok:true</code> (ou DORMANT esperado).</p>
+<p class='text-sm text-zinc-300 mb-2'>4. Commit + push em nome de Gold.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Outputs</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Entrada em watches.json · history/&lt;slug&gt;.jsonl semeado · commit pushed</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Review gate</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>[ ] Slug único e datas ISO</li><li class='text-zinc-300 mb-1'>[ ] Primeira obs existe (ou DORMANT justificado com data de despertar)</li><li class='text-zinc-300 mb-1'>[ ] Commit pushed</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>References</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'><a class='text-sky-400 hover:underline' href='../SKILL.md'>../SKILL.md</a> · <a class='text-sky-400 hover:underline' href='../../reference/routing-matrix.md'>routing-matrix</a></li></ul></div><p class='text-xs text-zinc-500 mt-4'>gerado por gen_manuals.py — não editar à mão</p></main></body></html>

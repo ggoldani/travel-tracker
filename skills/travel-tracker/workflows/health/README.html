@@ -1,0 +1,23 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>health</title><script src="https://cdn.tailwindcss.com"></script>
+<style>body{background:#09090b}.glass{background:rgba(24,24,27,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06)}code,pre{font-family:ui-monospace,monospace}</style></head><body class='min-h-screen text-zinc-100'><main class='max-w-3xl mx-auto px-6 py-10'><div class='glass rounded-2xl p-8'><h1 class='text-2xl font-bold text-zinc-100 mt-2 mb-4'>travel-tracker.workflow.health</h1>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Goal</h2>
+<p class='text-sm text-zinc-300 mb-2'>Diagnosticar a operação do tracker (coletas, falhas, entregas) e produzir o heartbeat.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Scope</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Aplica-se: &quot;tá quebrado?&quot;, falha de alerta, verificação pós-mudança.</li><li class='text-zinc-300 mb-1'>Não cobre: preços (usar <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>status</code>).</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Triggers</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>&quot;tá quebrado?&quot;, &quot;não chegou alerta&quot;, &quot;heartbeat&quot;</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Inputs</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>nenhum obrigatório</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Invariants</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>3+ fails consecutivos = estado crítico (deve ter gerado warning no canal)</li><li class='text-zinc-300 mb-1'>Watch com 0 obs = &quot;semeando&quot;, não &quot;ok&quot;; dormant ≠ falha</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Procedure</h2>
+<p class='text-sm text-zinc-300 mb-2'>1. <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>python3 probe.py --health</code> — relatório por watch.</p>
+<p class='text-sm text-zinc-300 mb-2'>2. Cruzar com <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>health.json</code> (fails, last_ok) e <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>probe.err.log</code>.</p>
+<p class='text-sm text-zinc-300 mb-2'>3. Se fail estrutural (DOM mudou): colher evidência ao vivo, abrir ciclo radioactive.</p>
+<p class='text-sm text-zinc-300 mb-2'>4. Heartbeat semanal é automático (cron Mondays 10h BRT) — não disparar manualmente sem necessidade.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Outputs</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Relatório de saúde + diagnóstico de causa quando houver fail</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Review gate</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>[ ] Todo watch não-ok tem causa nomeada</li><li class='text-zinc-300 mb-1'>[ ] Sem fail estrutural não tratado</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>References</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'><a class='text-sky-400 hover:underline' href='../SKILL.md'>../SKILL.md</a></li></ul></div><p class='text-xs text-zinc-500 mt-4'>gerado por gen_manuals.py — não editar à mão</p></main></body></html>

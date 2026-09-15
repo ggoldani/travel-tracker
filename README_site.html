@@ -1,0 +1,36 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>travel-tracker — README</title><script src="https://cdn.tailwindcss.com"></script>
+<style>body{background:#09090b}.glass{background:rgba(24,24,27,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06)}code,pre{font-family:ui-monospace,monospace}</style></head><body class='min-h-screen text-zinc-100'><main class='max-w-3xl mx-auto px-6 py-10'><div class='glass rounded-2xl p-8'><h1 class='text-2xl font-bold text-zinc-100 mt-2 mb-4'>travel-tracker</h1>
+<p class='text-sm text-zinc-300 mb-2'>Monitor diário de preços de passagens e hospedagens com alerta no Telegram só quando vale a pena.</p>
+<p class='text-sm text-zinc-300 mb-2'>Roda num VPS com <a class='text-sky-400 hover:underline' href='https://hermes-agent.nousresearch.com'>Hermes Agent</a>: cron diário → coleta via Chrome headless → histórico em JSONL → alerta <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>&lt; mediana30 −15%</code> com cooldown.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Como funciona</h2>
+<pre class='glass rounded-lg p-4 text-sm text-zinc-300 overflow-x-auto'>cron diário (9h BRT, no_agent)
+  └─ tick.sh
+       └─ probe.py
+            ├─ Google Flights  → min-tarifa BRL/pessoa (ida+volta)
+            ├─ Google Hotels   → mediana dos listings /noite (convertida p/ BRL)
+            ├─ history/&lt;slug&gt;.jsonl  (1 obs/dia)
+            └─ stdout vazio = silêncio | deal = alerta Telegram formatado</pre>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'><strong class='text-zinc-100'>Fontes</strong>: Google Flights (voo, typical price nativo) e Google Hotels (hospedagem; agrega Booking/Airbnb/Agoda)</li><li class='text-zinc-300 mb-1'><strong class='text-zinc-100'>Baseline</strong>: mediana das últimas 30 observações próprias; alerta só com ≥14 dias de histórico</li><li class='text-zinc-300 mb-1'><strong class='text-zinc-100'>FX</strong>: EUR/USD → BRL diário via open.er-api.com (fallback awesomeapi), cache em <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>fx.json</code></li><li class='text-zinc-300 mb-1'><strong class='text-zinc-100'>Gate de antecedência</strong>: Google Flights recusa datas &gt; ~315 dias; watch fica <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>DORMANT</code> e acorda sozinho na janela</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Estrutura</h2>
+<pre class='glass rounded-lg p-4 text-sm text-zinc-300 overflow-x-auto'>watches.json            # o que monitorar (destino, datas, tipo)
+probe.py                # coletor + parser + decisão de alerta
+tick.sh                 # entrypoint do cron (stdout vazio = nada entregue)
+history/&lt;slug&gt;.jsonl    # séries históricas
+alerts.json             # cooldown por watch (3 dias)</pre>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Adicionar um destino</h2>
+<pre class='glass rounded-lg p-4 text-sm text-zinc-300 overflow-x-auto'>{
+  &quot;slug&quot;: &quot;gig-lis-2026n&quot;,
+  &quot;tipo&quot;: &quot;voo&quot;,
+  &quot;origem&quot;: &quot;GIG&quot;,
+  &quot;destino&quot;: &quot;LIS&quot;,
+  &quot;data_ida&quot;: &quot;2026-11-20&quot;,
+  &quot;data_volta&quot;: &quot;2026-12-10&quot;
+}</pre>
+<p class='text-sm text-zinc-300 mb-2'><code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>tipo</code>: <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>voo</code> (pede origem/destino/data_ida/data_volta) ou <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>hotel</code> (pede destino/data_checkin/data_checkout).</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Requisitos</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Linux + Chrome/Chromium headless dedicado (<code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>--remote-debugging-port=9333</code>, o probe sobe sozinho)</li><li class='text-zinc-300 mb-1'><a class='text-sky-400 hover:underline' href='https://github.com/browser-use/browser-use'>browser-use CLI</a> no PATH apontado em <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>probe.py</code></li><li class='text-zinc-300 mb-1'>Cron que aceite <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>no_agent</code> (Hermes) ou qualquer scheduler: <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>tick.sh</code> imprime só quando há deal</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Canais de pagamento em cripto</h2>
+<p class='text-sm text-zinc-300 mb-2'>O alerta vem com lembrete dos canais para comparação na hora da compra:</p>
+<p class='text-sm text-zinc-300 mb-2'>hotéis — Travala, Sleap.io · voos — Aerodex (BR, Foxbit Pay), Alternative Airlines.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Licença</h2>
+<p class='text-sm text-zinc-300 mb-2'>MIT</p></div><p class='text-xs text-zinc-500 mt-4'>gerado por gen_manuals.py — não editar à mão</p></main></body></html>

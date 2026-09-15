@@ -1,0 +1,28 @@
+{
+  "name": "travel-tracker",
+  "version": "1.0.0",
+  "entry": "SKILL.md",
+  "routing": "router-only",
+  "commands": [
+    {
+      "name": "add-watch",
+      "description": "Adiciona destino/datas ao monitor e semeia histórico",
+      "skill": "workflows/add-watch/SKILL.md"
+    },
+    {
+      "name": "tick",
+      "description": "Roda a coleta de preços agora (foreground)",
+      "skill": "workflows/tick/SKILL.md"
+    },
+    {
+      "name": "health",
+      "description": "Diagnóstico operacional e heartbeat",
+      "skill": "workflows/health/SKILL.md"
+    },
+    {
+      "name": "status",
+      "description": "Preços atuais, baseline e tendência",
+      "skill": "workflows/status/SKILL.md"
+    }
+  ]
+}

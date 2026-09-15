@@ -1,0 +1,23 @@
+<!doctype html><html lang='pt-BR'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><title>tick</title><script src="https://cdn.tailwindcss.com"></script>
+<style>body{background:#09090b}.glass{background:rgba(24,24,27,.65);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.06)}code,pre{font-family:ui-monospace,monospace}</style></head><body class='min-h-screen text-zinc-100'><main class='max-w-3xl mx-auto px-6 py-10'><div class='glass rounded-2xl p-8'><h1 class='text-2xl font-bold text-zinc-100 mt-2 mb-4'>travel-tracker.workflow.tick</h1>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Goal</h2>
+<p class='text-sm text-zinc-300 mb-2'>Executar a coleta diária de preços de forma segura e legível.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Scope</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Aplica-se: execução manual/foreground, debug de coleta, força de re-coleta.</li><li class='text-zinc-300 mb-1'>Não cobre: interpretar se preço &quot;é bom&quot; (usar <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>status</code>).</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Triggers</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>&quot;roda agora&quot;, &quot;coleta hoje&quot;, &quot;por que não coletou?&quot;</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Inputs</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>opcional: <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>--only &lt;slug&gt;</code>, env <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>TT_FORCE=1</code> (pula dedupe)</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Invariants</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Modo cron (sem --once) imprime SOMENTE alertas; vazio = silêncio</li><li class='text-zinc-300 mb-1'>Dedupe antes do fetch; FAIL nunca sobrescreve último preço bom</li><li class='text-zinc-300 mb-1'>Hotel exige <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>dates_flow_ok:true</code>; sem isso o preço é da página genérica</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Procedure</h2>
+<p class='text-sm text-zinc-300 mb-2'>1. <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>python3 probe.py --once</code> (foreground; imprime tudo).</p>
+<p class='text-sm text-zinc-300 mb-2'>2. Se watch específico: <code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>--only &lt;slug&gt;</code>.</p>
+<p class='text-sm text-zinc-300 mb-2'>3. Debug de parsing: rodar testes (<code class='bg-zinc-800/80 text-emerald-300 rounded px-1 py-0.5 text-xs'>python3 -m unittest test_probe</code>).</p>
+<p class='text-sm text-zinc-300 mb-2'>4. Nunca rodar com TT_FORCE em produção sem intenção explícita de duplicar obs.</p>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Outputs</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>Stdout com ok/ALERTA/DORMANT/SKIP por watch; obs novas em history/</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>Review gate</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'>[ ] Saída interpretada linha a linha</li><li class='text-zinc-300 mb-1'>[ ] ALERTA explicado (vs mediana30 ou target)</li></ul>
+<h2 class='text-lg font-semibold text-zinc-200 mt-6 mb-2 border-b border-zinc-800 pb-1'>References</h2>
+<ul class='list-disc list-inside mb-3 text-sm'><li class='text-zinc-300 mb-1'><a class='text-sky-400 hover:underline' href='../SKILL.md'>../SKILL.md</a></li></ul></div><p class='text-xs text-zinc-500 mt-4'>gerado por gen_manuals.py — não editar à mão</p></main></body></html>
