@@ -70,7 +70,8 @@ def run_browser(script, timeout=220):
                        env=dict(os.environ, BU_CDP_URL=CDP_URL))
     d = {}
     for line in (p.stdout or "").splitlines():
-        m = re.match(r"^(PRICES|PRICES_GH|STEPS|PICKER)\s*=\s*(.+)$", line.strip())
+        m = re.match(r"^(PRICES|PRICES_GH|STEPS|PICKER|GF_ERROR|TITLE|HEAD)\s*=\s*(.+)$",
+                     line.strip())
         if m:
             d[m.group(1)] = m.group(2)
     return d
@@ -199,7 +200,12 @@ EXTRACT_PRICES_JS = ("(() => (document.body.innerText.match("
 
 
 def _collect_common(url, post_consent_js=""):
-    """Fluxo comum GF/GH: abre, atravessa consent, extrai precos."""
+    """Fluxo comum GF/GH: abre, atravessa consent, extrai precos.
+
+    GF falha intermitentemente ("Nenhum resultado / Algo deu errado") -
+    o script detecta o estado de erro, clica Atualizar e, se persistir,
+    recarrega a pagina uma vez. Sinaliza via GF_ERROR para a obs.
+    """
     script = (
         "import time\n"
         "new_tab(%r)\n" % url
@@ -210,8 +216,27 @@ def _collect_common(url, post_consent_js=""):
         + "    js(%r)\n" % CONSENT_JS
         + "    time.sleep(16)\n"
         + post_consent_js
+        + "body = js(\"document.body.innerText\")\n"
+        + "if 'Nenhum resultado' in body and ('deu errado' in body or 'Atualizar' in body):\n"
+        + "    js(%r)\n" % ("(() => { const b = Array.from(document.querySelectorAll("
+                        "'button, a[href]')).find(x => /^Atualizar$/i.test("
+                        "(x.innerText||'').trim())); if (b) b.click(); })()")
+        + "    time.sleep(15)\n"
+        + "    body = js(\"document.body.innerText\")\n"
+        + "    if 'Nenhum resultado' in body and 'deu errado' in body:\n"
+        + "        js('location.reload()')\n"
+        + "        time.sleep(16)\n"
+        + "        body = js(\"document.body.innerText\")\n"
+        + "if 'Nenhum resultado' in body and ('deu errado' in body):\n"
+        + "    print('GF_ERROR = 1')\n"
+        + "print('TITLE =', js(\"document.title\"))\n"
+        + "print('HEAD =', js(\"document.body.innerText.slice(0, 400)\").replace(chr(10), ' | '))\n"
         + "prices = js(%r)\n" % EXTRACT_PRICES_JS
         + "print('PRICES =', prices)\n"
+        # cleanup: fechar tabs no MESMO subprocess (sem chamada extra)
+        + "for t2 in list_tabs():\n"
+        + "    try:\n        close_tab(t2)\n    except Exception:\n        pass\n"
+        + "print('CLEAN = ok')\n"
     )
     return run_browser(script)
 
@@ -435,8 +460,7 @@ def process_watch(w, today, force):
     except Exception:
         strings = []
     pairs = parse_multi(strings)
-    # cleanup: fechar tabs
-    run_browser("for t in list_tabs():\n    try:\n        close_tab(t)\n    except Exception:\n        pass\nprint('CLEAN = ok')\n", timeout=60)
+    gf_error = res.get("GF_ERROR") == "1"
     fx_stale = False
     if w["tipo"] == "hotel":
         converted = [fx_to_brl([p]) for p in pairs]  # [(val, stale)]
@@ -477,8 +501,18 @@ def process_watch(w, today, force):
         steps = res.get("STEPS", "").split()
         obs["dates_flow_ok"] = (res.get("PICKER", "") == "OK"
                                 and steps == ["OK", "OK", "OK"])
+    if gf_error:
+        obs["gf_error"] = True  # GF falhou intermitente mesmo apos retry
     if fx_stale and obs["moedas"] != ["BRL"]:
         obs["fx_stale"] = True  # cambio do dia falhou; fallback hardcode
+    # evidencia de debug quando a coleta nao rendeu nada
+    if val is None:
+        dbg = os.path.join(BASE, "debug")
+        os.makedirs(dbg, exist_ok=True)
+        with open(os.path.join(dbg, "%s-%s.txt" % (slug, today.isoformat())),
+                  "w") as f:
+            f.write("TITLE=%s\nHEAD=%s\nPRICES=%s\nGF_ERROR=%s\n" % (
+                res.get("TITLE", "?"), res.get("HEAD", "?"), raw, gf_error))
     with open(os.path.join(HIST, slug + ".jsonl"), "a") as f:
         f.write(json.dumps(obs) + "\n")
     h = health_tick(slug, val is not None)
@@ -539,6 +573,8 @@ def main():
         print("\n".join(msgs) if msgs else "(nada)")
     else:
         print(("\n\n" + "―" * 20 + "\n\n").join(payload.values()) if payload else "")
+    # fechar o browser ao terminar (RAM no VPS é cara; próxima rodada reabre)
+    os.system("pkill -f 'user-data-dir=%s/chrome-profile' 2>/dev/null" % BASE)
 
 
 if __name__ == "__main__":

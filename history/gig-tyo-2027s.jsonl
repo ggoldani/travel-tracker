@@ -1,0 +1,25 @@
+{"ts": "2026-10-28T13:01", "date": "2026-10-28", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9090.0, "min_raw": ["BRL", 9090.0], "baseline": null}
+{"ts": "2026-10-29T13:02", "date": "2026-10-29", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9095.0, "min_raw": ["BRL", 9095.0], "baseline": 9090.0}
+{"ts": "2026-10-30T13:01", "date": "2026-10-30", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9149.0, "min_raw": ["BRL", 9149.0], "baseline": 9095.0}
+{"ts": "2026-10-31T13:02", "date": "2026-10-31", "ok": false, "n": 0, "moedas": [], "min_brl": null, "min_raw": null, "baseline": 9149.0}
+{"ts": "2026-11-01T13:02", "date": "2026-11-01", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9227.0, "min_raw": ["BRL", 9227.0], "baseline": 9149.0}
+{"ts": "2026-11-02T13:01", "date": "2026-11-02", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9227.0, "min_raw": ["BRL", 9227.0], "baseline": 9227.0}
+{"ts": "2026-11-03T13:01", "date": "2026-11-03", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9229.0, "min_raw": ["BRL", 9229.0], "baseline": 9227.0}
+{"ts": "2026-11-04T13:02", "date": "2026-11-04", "ok": false, "n": 0, "moedas": [], "min_brl": null, "min_raw": null, "baseline": 9229.0}
+{"ts": "2026-11-05T13:01", "date": "2026-11-05", "ok": true, "n": 11, "moedas": ["BRL"], "min_brl": 9325.0, "min_raw": ["BRL", 9325.0], "baseline": 9229.0}
+{"ts": "2026-11-06T13:01", "date": "2026-11-06", "ok": true, "n": 11, "moedas": ["BRL"], "min_brl": 9298.0, "min_raw": ["BRL", 9298.0], "baseline": 9325.0}
+{"ts": "2026-11-07T13:01", "date": "2026-11-07", "ok": false, "n": 0, "moedas": [], "min_brl": null, "min_raw": null, "baseline": 9298.0}
+{"ts": "2026-11-08T13:02", "date": "2026-11-08", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9363.0, "min_raw": ["BRL", 9363.0], "baseline": 9298.0}
+{"ts": "2026-11-09T13:01", "date": "2026-11-09", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9363.0, "min_raw": ["BRL", 9363.0], "baseline": 9363.0}
+{"ts": "2026-11-10T13:01", "date": "2026-11-10", "ok": false, "n": 0, "moedas": [], "min_brl": null, "min_raw": null, "baseline": 9363.0}
+{"ts": "2026-11-11T13:02", "date": "2026-11-11", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9501.0, "min_raw": ["BRL", 9501.0], "baseline": 9363.0}
+{"ts": "2026-11-12T13:02", "date": "2026-11-12", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9465.0, "min_raw": ["BRL", 9465.0], "baseline": 9501.0}
+{"ts": "2026-11-13T13:02", "date": "2026-11-13", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9552.0, "min_raw": ["BRL", 9552.0], "baseline": 9465.0}
+{"ts": "2026-11-14T13:01", "date": "2026-11-14", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9615.0, "min_raw": ["BRL", 9615.0], "baseline": 9552.0}
+{"ts": "2026-11-15T13:02", "date": "2026-11-15", "ok": true, "n": 11, "moedas": ["BRL"], "min_brl": 9615.0, "min_raw": ["BRL", 9615.0], "baseline": 9311.5}
+{"ts": "2026-11-16T13:02", "date": "2026-11-16", "ok": true, "n": 11, "moedas": ["BRL"], "min_brl": 9615.0, "min_raw": ["BRL", 9615.0], "baseline": 9325.0}
+{"ts": "2026-11-17T13:02", "date": "2026-11-17", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9750.0, "min_raw": ["BRL", 9750.0], "baseline": 9344.0}
+{"ts": "2026-11-18T13:02", "date": "2026-11-18", "ok": true, "n": 12, "moedas": ["BRL"], "min_brl": 9840.0, "min_raw": ["BRL", 9840.0], "baseline": 9363.0}
+{"ts": "2026-11-19T13:02", "date": "2026-11-19", "ok": false, "n": 0, "moedas": [], "min_brl": null, "min_raw": null, "baseline": 9363.0}
+{"ts": "2026-11-20T13:02", "date": "2026-11-20", "ok": false, "n": 0, "moedas": [], "min_brl": null, "min_raw": null, "baseline": 9363.0}
+{"ts": "2026-11-21T13:02", "date": "2026-11-21", "ok": true, "n": 11, "moedas": ["BRL"], "min_brl": 10017.0, "min_raw": ["BRL", 10017.0], "baseline": 9363.0}
